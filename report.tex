@@ -1,0 +1,130 @@
+
+\documentclass[10pt,a4]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{top=3cm,left=2cm,right=2cm,bottom=3cm}
+\usepackage[scaled]{helvet}
+\usepackage[T1]{fontenc}
+\renewcommand\familydefault{\sfdefault}
+
+
+\author{Samuele Lo Piccolo}
+\date{\today}
+\title{Driver for Adafruit Neo Trinkey - SAMD21 USB Key}
+
+
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Project data}
+
+\begin{itemize}
+\item 
+  Project supervisor: Vittorio Zaccaria
+
+\item 
+The group that is delivering this project:
+
+\begin{center}
+\begin{tabular}{lll}
+Last and first name & Person code & Email address\\
+\hline
+  Lo Piccolo Samuele & 10796320 & samuele.lopiccolo@mail.polimi.it \\               
+\end{tabular}
+\end{center}
+
+\item The Github repository can be found \href{https://github.com/Samuele-LP/AOS}{\textbf{here}}
+
+\end{itemize}
+
+
+\section{Project description}
+
+
+
+This projects allows to communicate with a serial interface exposed as a USB-CDC endpoint on the Adafruit Neo Trinkey.\\
+The aim of the project is to be able to send textual commands to the Circuit Python REPL and control the device's behaviour, mainly to change the LEDs' colours.\\\\
+I did not implement the handling of multiple devices since I only have access to one Neo Trinkey and could not \\reliably validate the correctness of the solution
+
+
+\subsection{Design and implementation}
+
+My driver registers itslef with the USB subsytem as a USB driver, providing only the required fields of \textbf{struct usb\textunderscore driver}:
+\begin{itemize}
+	\item The driver name
+	\item The USB device table to be able to call the probe function
+	\item The probe function that readies the driver and the device for communication
+	\item The disconnect function that handles the disconnection of the device
+\end{itemize}
+The physical device is exposed as a character device in the /dev/ directory, the only file operations implemented are read and write.
+\subsubsection{Init}
+The Init function registers my driver to USBcore so that when a match for the \textit{Module Device Table} is found \hyperref[sec:probe]{\textbf{Probe}} will be called.\\
+Init then goes on to: \begin{itemize}
+	\item Request a character device region 
+	\item Initializing and registering with the kernel the character device associated with the module
+	\item Creating a class of devices "aos\textunderscore class"
+\end{itemize}
+\subsubsection{Exit}
+The Exit function starts by unregistering from USBcore so that the disconnect function is called if a device is currently plugged in, then it deletes and unregisters the character device and finally it destroys the created class.
+\subsubsection{Probe}
+\label{sec:probe}
+The Probe function is used to set the necessary CDC parameters for communication, it does so by sending two \textit{USB Control Messages} to the device.\\The first contains the \textbf{Line Coding} parameters which determine how the device and the host communicate.\\The second control message instead sets up the CDC endpoint to accept bulk transfers, in particular I found that setting both DTR and RTS to 1 worked best.\\
+If the device setup is successful I create a device file \textbf{/dev/AOSdev}
+\subsubsection{Disconnect}
+When Disconnect is called I destroy the device file \textbf{/dev/AOSdev} and empty a local buffer of characters read from the device, but not yet sent to userspace.
+\subsubsection{Write}
+In the Write function I make use of USB bulk transfers to send data to the device, since \textbf{usb\textunderscore bulk\textunderscore msg} only accepts kernel memory I must first create a local buffer and copy the userspace buffer to it.
+The device accepts up to 64 bytes at a time, so any write bigger than 64 bytes is truncated and the number of actually written bytes is returned to the caller.\\\\
+The device has a local buffer of, I think, 64 bytes that contains the textual outputs of the REPL interaction, if this buffer ever fills up the device stops accepting bulk transfers; in the Write function I make sure that the device buffer is always empty after a write by performing successive USB bulk transfer reads until no more bytes are read, the output of these reads is then stored on a local buffer called \textit{read\textunderscore buffer} that is used when the \hyperref[sec:read]{\textbf{Read}} function is called.
+\subsubsection{Read}
+\label{sec:read}
+The Read function does not communicate directly with the physical device, it just copies to userspace the contents of \textit{read\textunderscore buffer}\\
+My buffer is of fixed size and gets flushed when it overflows or after a full read is completed \textbf{i.e.} when the number of read bytes is greater or equal to the number of available bytes. 
+
+\section{Project outcomes}
+
+\subsection{Concrete outcomes}
+The produced artifacts are available in \href{https://github.com/Samuele-LP/AOS}{\textbf{Github}} and are:
+\begin{itemize}
+	\item This report
+	\item The project presentation
+	\item The device driver
+\end{itemize}
+
+\subsection{Learning outcomes}
+\begin{itemize}
+\item This project helped me to understand how to work more effectively in a Linux environment
+\item I learned how USB endpoint enumeration works and the basics of how the Linux kernel implements communication with USB devices
+\end{itemize}
+
+\subsection{Existing knowledge}
+I think most of the relevant knowledge was given by AOS, the rest of my career did not cover these topics with this level of depth if at all.\\
+A course that helped me better understand C programming in general was Computer Security.
+
+\subsection{Problems encountered}
+The main issue of the project was understanding how my device worked, I could not find any documentation so I had to figure out why it behaved like that by trial and error. This is my first project using a physical device, so this is my first time tackling this type of problems.\\
+
+\section{Honor Pledge}
+(\textbf{This part cannot be modified and it is mandatory to sign it})
+
+I/We pledge that this work was fully and wholly completed within the criteria
+established for academic integrity by Politecnico di Milano (Code of Ethics and
+Conduct) and represents my/our original production, unless otherwise cited.
+
+I/We also understand that this project, if successfully graded,  will fulfill part B requirement of the
+Advanced Operating System course and that it will be considered valid up until
+the AOS exam of Sept. 2026. 
+
+\begin{flushright}
+Samuele Lo Piccolo
+\end{flushright}
+
+
+\end{document}
