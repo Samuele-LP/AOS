@@ -22,7 +22,7 @@
 static struct usb_device *usb_dev;
 static struct usb_device_id usb_dev_table [] = 
 {
-    //I check for a specific interface since probe would get called multiple times
+    //I check for a specific interface since probe would get called multiple times since the device has a lot of interfaces
     {USB_DEVICE_AND_INTERFACE_INFO(VENDOR_ID,PRODUCT_ID,10,0,0)},
     {},
 };
@@ -171,8 +171,7 @@ static ssize_t aos_write(struct file *f, const char *user_buf, size_t len, loff_
         return -1;
     }
     
-    text = kzalloc(65, GFP_KERNEL);
-    text[64] = '\0';
+    text = kzalloc(64, GFP_KERNEL);
 
     to_copy = min(len, 64);
     not_copied = copy_from_user(text, user_buf, to_copy);
