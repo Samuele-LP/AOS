@@ -1,16 +1,8 @@
-#include "linux/compiler_types.h"
-#include "linux/device.h"
-#include "linux/gfp_types.h"
-#include "linux/printk.h"
-#include "linux/slab.h"
-#include "linux/uaccess.h"
 #include "linux/usb/cdc.h"
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/usb.h>
-#include <linux/fs.h>
 #include <linux/cdev.h>
-#include <linux/usb/cdc.h>
 
 #define VENDOR_ID 0x239a
 #define PRODUCT_ID 0x80f0
@@ -101,7 +93,7 @@ static void aos_disconnect(struct usb_interface *intf)
     device_destroy(aos_class, dev_nr);
     flushBuf();
     usb_dev = NULL;
-    pr_info("AOS: Disconnected device\n");
+    pr_info("AOS:  Disconnected device\n");
 }
 
 static struct usb_driver aos_usb_driver = 
