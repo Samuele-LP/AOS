@@ -14,7 +14,7 @@
 static struct usb_device *usb_dev;
 static struct usb_device_id usb_dev_table [] = 
 {
-    //I check for a specific interface since probe would get called multiple times since the device has a lot of interfaces
+    //I check for a specific interface since probe would get called multiple times: the device has a lot of interfaces
     {USB_DEVICE_AND_INTERFACE_INFO(VENDOR_ID,PRODUCT_ID,10,0,0)},
     {},
 };
@@ -57,7 +57,7 @@ static int aos_probe(struct usb_interface *intf, const struct usb_device_id *id)
     USB_TYPE_CLASS | USB_RECIP_INTERFACE | USB_DIR_OUT,0,0,&line_coding,sizeof(line_coding),1000);
     
     if (status < 0){
-        pr_err("AOS: Probe failed setting LINE_CODING\n");
+        pr_err("AOS:  Probe failed setting LINE_CODING\n");
         return status;
     }
 
@@ -67,7 +67,7 @@ static int aos_probe(struct usb_interface *intf, const struct usb_device_id *id)
     0 /* interface 0 (CDC control)*/ ,NULL,0,1000);
 
     if (status < 0){
-        pr_err("AOS: Probe failed setting CONTROL_LINE_STATE\n");
+        pr_err("AOS:  Probe failed setting CONTROL_LINE_STATE\n");
         return status;
     }
     //If the device is properly set up I create the corresponding device file
@@ -78,7 +78,7 @@ static int aos_probe(struct usb_interface *intf, const struct usb_device_id *id)
     pr_info("AOS:  Created device under /sys/class/aos_class/AOSdev\n");
     pr_info("AOS:  Device file /dev/AOSdev\n");
 
-    pr_info("AOS: Probe sucessful\n");
+    pr_info("AOS:  Probe sucessful\n");
     return 0;
 }
 
@@ -134,7 +134,7 @@ static ssize_t aos_read(struct file *f, char __user *user_buf, size_t len, loff_
     int to_copy, not_copied, delta;
 
     if(usb_dev == NULL){
-        pr_info("AOS: No device plugged in\n");
+        pr_info("AOS:  No device plugged in\n");
         return -1;
     }
 
@@ -159,7 +159,7 @@ static ssize_t aos_write(struct file *f, const char *user_buf, size_t len, loff_
     int actually_copied;
 
     if(usb_dev == NULL){
-        pr_info("AOS: No device plugged in\n");
+        pr_info("AOS:  No device plugged in\n");
         return -1;
     }
     
@@ -171,10 +171,10 @@ static ssize_t aos_write(struct file *f, const char *user_buf, size_t len, loff_
 
     status = usb_bulk_msg(usb_dev, usb_sndbulkpipe(usb_dev, 2), text, delta, &actually_copied, 2000);
     if (status < 0){
-        pr_err("AOS: Error sending bulk msg, ERRNO = %d\n",status);
+        pr_err("AOS:  Error sending bulk msg, ERRNO = %d\n",status);
         return status;
     }
-    pr_info("AOS:  Write successful:\n\"\t%s\t\"\n",text);
+    pr_info("AOS:  Write successful\n");
 
     empty_device_buffer();
 
@@ -202,14 +202,14 @@ static int __init aos_init(void)
 
     status = alloc_chrdev_region(&dev_nr, 0, 10, "AOS_dev");
     if (status) {
-        pr_err("AOS: Error reserving the region of device numbers\n");
+        pr_err("AOS:  Error reserving the region of device numbers\n");
         goto deregister;
     }
     cdev_init(&aos_cdev, &fops);
     aos_cdev.owner = THIS_MODULE;
     status = cdev_add(&aos_cdev, dev_nr, 10);
     if (status) {
-        pr_err("AOS: Error adding cdev\n");
+        pr_err("AOS:  Error adding cdev\n");
         goto free_devnr;
     }
 
